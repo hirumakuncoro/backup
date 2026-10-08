@@ -1,0 +1,10 @@
+services:
+  backup:
+    build: .
+    container_name: backup
+    environment:
+      - TOKEN=${TOKEN}
+      - DOMAIN=${DOMAIN}
+    volumes:
+      - .:/app
+    restart: "no"
