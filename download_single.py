@@ -17,7 +17,7 @@ YTDLP_HEADERS = [
 # DAFTAR VIDEO YANG INGIN DIDOWNLOAD
 # Format: ("video_id", "Nama File Video")
 VIDEOS_TO_DOWNLOAD = [
-    ("19b8fad6-777d-46fa-a895-5d65e0286b9d", "Contoh Video 1"),
+    ("19b8fad6-777d-46fa-a895-5d65e0286b9d", "70 - [LIVE] Merkle Airdrop - 29 Maret 2024"),
     # Tambahkan video lain di sini:
     # ("id_lain", "Nama Video Lain"),
 ]
