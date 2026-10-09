@@ -6,5 +6,6 @@ services:
       - TOKEN=${TOKEN}
       - DOMAIN=${DOMAIN}
     volumes:
+      - ~/.config/rclone:/root/.config/rclone
       - .:/app
     restart: "no"
