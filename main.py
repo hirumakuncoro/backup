@@ -6,6 +6,8 @@ from pathlib import Path
 import requests
 
 # ============ CONFIG ============
+START_INDEX = 1  # Ubah angka ini jika ingin melanjutkan nomor folder sebelumnya
+
 COURSE_IDS = [
     10262,
     10349,
@@ -264,7 +266,7 @@ def main() -> None:
         print("✗ DOMAIN tidak ditemukan di environment.", file=sys.stderr)
         sys.exit(1)
 
-    for idx, cid in enumerate(COURSE_IDS, 1):
+    for idx, cid in enumerate(COURSE_IDS, START_INDEX):
         try:
             process_course(idx, str(cid))
         except Exception as e:
