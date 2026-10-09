@@ -1,9 +1,20 @@
+import logging
 import os
 import subprocess
 import sys
 from pathlib import Path
 
 import requests
+
+# Konfigurasi Logging: tampil di console dan disimpan ke file download_errors.log
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(message)s",
+    handlers=[
+        logging.StreamHandler(sys.stdout),
+        logging.FileHandler("download_errors.log")
+    ]
+)
 
 # ============ CONFIG ============
 START_INDEX = 1  # Ubah angka ini jika ingin melanjutkan nomor folder sebelumnya
@@ -159,7 +170,7 @@ COURSE_IDS = [
     88956
 ]
 PULL_ZONE = "vz-0e6889a5-f64"
-QUALITY = "5000"  # 1080p (dari yt-dlp -F)
+QUALITY = "best[height<=1080]/best"  # Max 1080p, fallback to best available
 API_TOKEN = os.environ.get("TOKEN", "")
 TARGET_DOMAIN = os.environ.get("DOMAIN", "")
 YTDLP_HEADERS = [
@@ -213,7 +224,7 @@ def sanitize(name: str) -> str:
 def download(video_id: str, output_path: Path) -> bool:
     """Download 1080p ke output_path. Return True kalau sukses."""
     if output_path.exists():
-        print(f"    ✓ File sudah ada: {output_path.name}, skip.")
+        logging.info(f"File sudah ada: {output_path.name}, skip.")
         return True
 
     output_path.parent.mkdir(parents=True, exist_ok=True)
@@ -227,18 +238,25 @@ def download(video_id: str, output_path: Path) -> bool:
         "-o", str(output_path),
         hls,
     ]
-    print(f"    → yt-dlp {video_id}")
-    result = subprocess.run(cmd)
-    return result.returncode == 0
+    logging.info(f"Mulai yt-dlp untuk {video_id}")
+
+    # Capture output agar error bisa masuk ke log Python
+    result = subprocess.run(cmd, capture_output=True, text=True)
+
+    if result.returncode != 0:
+        logging.error(f"yt-dlp gagal untuk {video_id}. Error:\n{result.stderr.strip()}")
+        return False
+
+    return True
 
 
 def process_course(course_idx: int, course_id: str) -> None:
-    print(f"\n=== Course {course_id} ===")
+    logging.info(f"=== Course {course_id} ===")
     course = fetch_course(course_id)
     raw_title = sanitize(course.get("course_title", f"Course_{course_id}"))
     course_title = f"{course_idx:02d} - {raw_title}"
     videos = extract_videos(course)
-    print(f"  {len(videos)} video ditemukan di '{course_title}'")
+    logging.info(f"{len(videos)} video ditemukan di '{course_title}'")
 
     base_dir = Path.cwd() / course_title
 
@@ -249,28 +267,28 @@ def process_course(course_idx: int, course_id: str) -> None:
         filename = f"{idx:02d} - {safe_lesson}.mp4"
         local_path = base_dir / safe_section / filename
 
-        print(f"\n[{idx}/{len(videos)}] {section_title} - {lesson_title}")
+        logging.info(f"[{idx}/{len(videos)}] {section_title} - {lesson_title}")
         if not download(video_id, local_path):
-            print(f"    ✗ Download gagal: {local_path.name}")
+            logging.error(f"Download gagal: {local_path.name}")
         else:
             if local_path.exists():
                 size_mb = local_path.stat().st_size / 1024 / 1024
-                print(f"    ✓ Selesai ({size_mb:.1f} MB) → {local_path.relative_to(Path.cwd())}")
+                logging.info(f"Selesai ({size_mb:.1f} MB) → {local_path.relative_to(Path.cwd())}")
 
 
 def main() -> None:
     if not API_TOKEN:
-        print("✗ TOKEN tidak ditemukan di environment.", file=sys.stderr)
+        logging.error("TOKEN tidak ditemukan di environment.")
         sys.exit(1)
     if not TARGET_DOMAIN:
-        print("✗ DOMAIN tidak ditemukan di environment.", file=sys.stderr)
+        logging.error("DOMAIN tidak ditemukan di environment.")
         sys.exit(1)
 
     for idx, cid in enumerate(COURSE_IDS, START_INDEX):
         try:
             process_course(idx, str(cid))
         except Exception as e:
-            print(f"✗ Course {cid} error: {e}", file=sys.stderr)
+            logging.error(f"Course {cid} error: {e}")
 
 
 if __name__ == "__main__":
